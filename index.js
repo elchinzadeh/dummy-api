@@ -13,11 +13,11 @@ app.get('/', (req, res) => {
     res.send('Hello World!')
 })
 
-// app.post('/registration', Controller.registration)
-// app.post('/login', Controller.login)
-// app.get('/logout', Controller.logout)
-// app.get('/profile', Controller.profileGetInfo)
-// app.put('/profile', Controller.profileUpdate)
+app.post('/registration', Controller.registration)
+app.post('/login', Controller.login)
+app.post('/logout', Controller.logout)
+app.get('/profile', Controller.profileGetInfo)
+app.put('/profile', Controller.profileUpdate)
 
 app.get('/product', Controller.productGetAll)
 app.get('/product/bestseller', Controller.productGetBestsellers)

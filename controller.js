@@ -271,19 +271,16 @@ const productsData = [
     },
 ]
 
-function registration() {
+function registration(req, res) {
     const body = req.body
 
     if (
-        !body.first_name ||
-        !body.last_name ||
-        !body.username ||
         !body.email ||
+        !body.username ||
         !body.password
     ) {
         res.status(400).json({
-            "status": 400,
-            "message": "Body validation failed"
+            "errorMessage": "Body validation failed"
         })
         return
     }
@@ -291,8 +288,7 @@ function registration() {
     fs.readFile('./db.json', 'utf8', (err, data) => {
         if (err) {
             res.status(500).json({
-                "status": 500,
-                "message": err
+                "errorMessage": err
             })
         } else {
             const db = JSON.parse(data)
@@ -307,20 +303,19 @@ function registration() {
             if (userExist) {
                 if (userExist.email === body.email) {
                     res.status(400).json({
-                        "status": 400,
-                        "message": 'Email already exists'
+                        "errorMessage": 'Email already exists'
                     })
                 } else {
                     res.status(400).json({
-                        "status": 400,
-                        "message": 'Username already exists'
+                        "errorMessage": 'Username already exists'
                     })
                 }
             } else {
                 const newUser = {
                     id: uuid(),
-                    first_name: body.first_name,
-                    last_name: body.last_name,
+                    first_name: '',
+                    last_name: '',
+                    phone: '',
                     username: body.username,
                     email: body.email,
                     password: body.password
@@ -331,8 +326,7 @@ function registration() {
                 fs.writeFile('db.json', JSON.stringify(db), 'utf8', (err, data) => {
                     if (err) {
                         res.status(500).json({
-                            "status": 500,
-                            "message": err
+                            "errorMessage": err
                         })
                     } else {
                         const { password, ...userData } = newUser
@@ -355,8 +349,7 @@ function login(req, res) {
         !body.password
     ) {
         res.status(400).json({
-            "status": 400,
-            "message": "Body validation failed"
+            "errorMessage": "Body validation failed"
         })
         return
     }
@@ -364,8 +357,7 @@ function login(req, res) {
     fs.readFile('./db.json', 'utf8', (err, data) => {
         if (err) {
             res.status(500).json({
-                "status": 500,
-                "message": err
+                "errorMessage": err
             })
         } else {
             const db = JSON.parse(data)
@@ -385,8 +377,7 @@ function login(req, res) {
                 })
             } else {
                 res.status(400).json({
-                    "status": 400,
-                    "message": 'Username or password is incorrect'
+                    "errorMessage": 'Username or password is incorrect'
                 })
             }
         }
@@ -394,30 +385,50 @@ function login(req, res) {
 }
 
 function logout(req, res) {
-
+    res.status(204).send()
 }
 
 function profileGetInfo(req, res) {
-    const token = req.headers.authorization
-
-    if (!token) {
-        res.status(401).end()
-    } else {
-        let userData
-
-        try {
-            userData = jwt.verify(token, JWT_SECRET)
-            res.json(userData)
-        } catch (error) {
-            res.status(400).json({
-                "status": 400,
-                "message": 'Token verification failed'
-            })
-        }
-    }
+    const userData = verifyUser(req, res)
+    res.json(userData)
 }
 
 function profileUpdate(req, res) {
+    const userData = verifyUser(req, res)
+
+    const body = req.body
+
+    if (
+        !body.first_name ||
+        !body.last_name ||
+        !body.email ||
+        !body.phone
+    ) {
+        res.status(400).json({
+            "errorMessage": "Body validation failed"
+        })
+        return
+    } else {
+        fs.readFile('db.json', {encoding: 'utf8'}, (err, data) => {
+            const dbData = JSON.parse(data)
+            const existingUser = dbData.users.find(u => u.id === userData.id)
+
+            existingUser.first_name = body.first_name
+            existingUser.last_name = body.last_name
+            existingUser.email = body.email
+            existingUser.phone = body.phone
+            
+            fs.writeFile('db.json', JSON.stringify(dbData), 'utf8', (err, data) => {
+                if (err) {
+                    res.status(500).json({
+                        "errorMessage": err
+                    })
+                } else {
+                    res.json(existingUser)
+                }
+            });
+        })
+    }
 
 }
 
@@ -711,6 +722,27 @@ function teamGetAll(req, res) {
             picture: "https://i.pravatar.cc/200?img=12"
         },
     ])
+}
+
+function verifyUser (req, res) {
+    const token = req.headers.authorization
+
+    if (!token) {
+        res.status(401).end()
+    } else {
+        let userData
+
+        try {
+            userData = jwt.verify(token, JWT_SECRET)
+            return userData
+        } catch (error) {
+            res.status(400).json({
+                "errorMessage": 'Token verification failed'
+            })
+        }
+    }
+
+    return false
 }
 
 module.exports = {
